@@ -1,11 +1,19 @@
 ﻿using Autodesk.Revit.DB;
 using System;
+using System.Net;
+using System.Security.Cryptography;
 
 namespace 添加轴线
 {
     public abstract class OffsetGrid
 
     {
+        protected OffsetGrid(XYZ selectedPoint, Grid grid)
+        {
+            SelectedPoint = selectedPoint;
+            this.grid = grid;
+            
+        }
         #region 属性
 
         ///<summary>
@@ -49,10 +57,16 @@ namespace 添加轴线
         /// 被选中的轴网
         /// </summary>
         public Grid grid;
-
+        /// <summary>
+        /// 计算点到轴线的距离
+        /// </summary>
         public abstract void GetDistance();
 
+        /// <summary>
+        /// 重新判断轴线起终点
+        /// </summary>
         public abstract void GetStartAndEndPoint();
+        public abstract void SetOffsetDistance();
 
         /// <summary>
         /// 点到直线的距离
@@ -71,17 +85,37 @@ namespace 添加轴线
             // 返回垂直向量的长度，即点到直线的距离
             return perpendicularVector.GetLength();
         }
+        /// <summary>
+        /// 计算两个向量的夹角
+        /// </summary>
+        /// <param name="vector1"></param>
+        /// <param name="vector2"></param>
+        /// <returns></returns>
+        public double GetAngleBetweenVectors(XYZ vector1, XYZ vector2)
+        { // 计算点积
+            double dotProduct = vector1.DotProduct(vector2);
+            //计算两个向量的长度
+            double magnitude1 = vector1.GetLength();
+            double magnitude2 = vector2.GetLength();
+            //计算夹角的余弦值
+            double cosTheta = dotProduct / (magnitude1 * magnitude2);
+            //确保余弦值在有效范围内
+            // cosTheta = Math.Max(-1.0, Math.Min(1.0, cosTheta));
+            //计算夹角的弧度
+            double thetaInRadians = Math.Acos(cosTheta);
+            return thetaInRadians;
+        }
     }
 
     public class OffsetLineGrid : OffsetGrid
     {
-        public OffsetLineGrid(XYZ selectedPoint, Grid grid)
+        public OffsetLineGrid(XYZ selectedPoint, Grid grid) : base(selectedPoint, grid)
         {
-            SelectedPoint = selectedPoint;
             GetStartAndEndPoint();
             GetDistance();
-            this.grid = grid;
+            SetOffsetDistance();
         }
+
 
         /// <summary>
         /// 选中点与起点组成的线段 与 轴线法向量的夹角（用于计算偏移距离）
@@ -96,39 +130,56 @@ namespace 添加轴线
         public override void GetStartAndEndPoint()
         {
             XYZ Point0 = grid.Curve.GetEndPoint(0);
-            XYZ Point1 = grid.Curve.GetEndPoint(1); 
+            XYZ Point1 = grid.Curve.GetEndPoint(1);
             if (Math.Abs(Point0.Y - Point1.Y) < 1e-6)
             {
-                
                 StartPoint = Point0.X > Point1.X ? Point1 : Point0;
                 EndPoint = Point0.X < Point1.X ? Point1 : Point0;
             }
             else if (Math.Abs(Point0.X - Point1.X) < 1e-6)
             {
-                
                 StartPoint = Point0.Y > Point1.Y ? Point1 : Point0;
                 EndPoint = Point0.Y < Point1.Y ? Point1 : Point0;
             }
             else if (Point0.X < Point1.X)
             {
-                
                 StartPoint = Point0;
                 EndPoint = Point1;
             }
             else
             {
-                
                 StartPoint = Point1;
                 EndPoint = Point0;
             }
+        }
+
+        public override void SetOffsetDistance()
+        {
+           XYZ verctor1= SelectedPoint - StartPoint;
+           XYZ verctor2= EndPoint - StartPoint;
+          
+           this.OffsetDir = (EndPoint - StartPoint).CrossProduct(XYZ.BasisZ).Normalize()*OffsetDistance;
+            if (verctor1.CrossProduct(verctor2).Z < 0)
+            {//根据选取点的位置选择偏移方向
+                OffsetDir = -OffsetDir;
+
+            }
+
+
         }
     }
 
     public class OffsetArcGrid : OffsetGrid
     {
-        public OffsetArcGrid(XYZ selectedPoint, Grid grid)
+
+        Arc GridArc;
+        public OffsetArcGrid(XYZ selectedPoint, Grid grid) : base(selectedPoint, grid)
         {
-            SelectedPoint = selectedPoint;
+            
+            GridArc = grid.Curve as Arc;
+            ArcRadius = GridArc.Radius;
+            GetStartAndEndPoint();
+            GetDistance();
         }
 
         /// <summary>
@@ -153,12 +204,35 @@ namespace 添加轴线
 
         public override void GetDistance()
         {
-            throw new System.NotImplementedException();
+            
+            this.OffsetDistance = ArcRadius;
         }
 
         public override void GetStartAndEndPoint()
         {
-            throw new System.NotImplementedException();
+            XYZ Point0 = grid.Curve.GetEndPoint(0);
+            XYZ Point1 = grid.Curve.GetEndPoint(1);
+
+            XYZ vector0 = (Point0- GridArc.Center);
+            XYZ vector1 = (Point1- GridArc.Center);
+
+            XYZ vectorZ=vector0.CrossProduct(vector1);
+            if (vectorZ.Z < 0)
+            {
+                StartPoint = Point1;
+                EndPoint = Point0;
+            }
+            else
+            {
+                StartPoint = Point0;
+                EndPoint = Point1;
+            }
+
+        }
+
+        public override void SetOffsetDistance()
+        {
+            throw new NotImplementedException();
         }
     }
 }

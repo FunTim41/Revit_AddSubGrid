@@ -34,7 +34,6 @@ namespace 添加轴线
 
             doc = uidoc.Document;
 
-            selectionFilter gridFilter = new selectionFilter();
             using (Transaction t = new Transaction(doc, "偏移轴网"))
             {
                 t.Start();
@@ -43,6 +42,7 @@ namespace 添加轴线
                 {
                     try
                     {
+                        selectionFilter gridFilter = new selectionFilter();
                         Reference reference = uidoc.Selection.PickObject(ObjectType.Element, gridFilter);
                         XYZ selectedPoint = uidoc.Selection.PickPoint();
                         //被选中的grid
@@ -52,38 +52,37 @@ namespace 添加轴线
                         if (grid.Curve as Line != null)
                         {
                             OffsetLineGrid offsetGrid = new OffsetLineGrid(selectedPoint, grid);
-                            Model newinfo;
-
-                            newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
+                            Model newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
                             if (newinfo != null)
                             {
                                 offsetGrid.OffsetDistance = newinfo.Distance;
-                            }
 
-                            newGridId = ElementTransformUtils.CopyElement(doc, grid.Id, offsetGrid.OffsetDir).First();
-                            SetNewName(newGridId, newinfo.Name);
+                                newGridId = ElementTransformUtils.CopyElement(doc, grid.Id, offsetGrid.OffsetDir).First();
+                                SetNewName(newGridId, newinfo.Name);
+                            }
                         }
-                        else
+                        else if (grid.Curve as Arc != null)
                         {
                             OffsetArcGrid offsetGrid = new OffsetArcGrid(selectedPoint, grid);
                             Model newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
 
-                            newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
+                            //newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
                             if (newinfo != null)
                             {
-                                offsetGrid.ArcRadius = newinfo.Distance;
-                            }
+                                offsetGrid.ArcRadius += newinfo.Distance;
 
-                            Arc arc = Arc.Create(offsetGrid.ArcCenter, offsetGrid.ArcRadius, offsetGrid.StartAngle, offsetGrid.EndAngle, XYZ.BasisX, XYZ.BasisY);
-                            newGridId = Grid.Create(doc, arc).Id;
-                            SetNewName(newGridId, newinfo.Name);
+                                Arc arc = Arc.Create(offsetGrid.ArcCenter, offsetGrid.ArcRadius, offsetGrid.StartAngle, offsetGrid.EndAngle, XYZ.BasisX, XYZ.BasisY);
+                                newGridId = Grid.Create(doc, arc).Id;
+
+                                SetNewName(newGridId, newinfo.Name);
+                            }
                         }
 
-                        break;
+                        continue;
                     }
                     catch (OperationCanceledException)
                     {
-                        continue;
+                        break;
                     }
                     catch (Exception ex)
                     {
@@ -106,7 +105,7 @@ namespace 添加轴线
         private Model GetNameAndDistance(Grid grid, double distance)
         {
             Model model = new Model();
-            model.Name = grid.Name;
+            model.Name = grid.Name+"/1";
             model.Distance = UnitUtils.ConvertFromInternalUnits(distance, DisplayUnitType.DUT_MILLIMETERS);
 
             MainView mainView = new MainView();
@@ -151,20 +150,7 @@ namespace 添加轴线
             throw new NotImplementedException();
         }
 
-        public double GetAngleBetweenVectors(XYZ vector1, XYZ vector2)
-        { // 计算点积
-            double dotProduct = vector1.DotProduct(vector2);
-            //计算两个向量的长度
-            double magnitude1 = vector1.GetLength();
-            double magnitude2 = vector2.GetLength();
-            //计算夹角的余弦值
-            double cosTheta = dotProduct / (magnitude1 * magnitude2);
-            //确保余弦值在有效范围内
-            // cosTheta = Math.Max(-1.0, Math.Min(1.0, cosTheta));
-            //计算夹角的弧度
-            double thetaInRadians = Math.Acos(cosTheta);
-            return thetaInRadians;
-        }
+      
 
         public double GetCosineOfVectors(XYZ vector1, XYZ vector2)
         { // 计算点积
@@ -175,8 +161,6 @@ namespace 添加轴线
             // 计算余弦值
             return dotProduct / (length1 * length2);
         }
-
-       
 
         /// <summary>
         /// 轴线过滤器
