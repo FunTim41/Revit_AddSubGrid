@@ -1,4 +1,5 @@
 ﻿using Autodesk.Revit.DB;
+using System;
 
 namespace 添加轴线
 {
@@ -94,8 +95,32 @@ namespace 添加轴线
 
         public override void GetStartAndEndPoint()
         {
-           XYZ point0=grid.Curve.GetEndPoint(0);
-           XYZ point1=grid.Curve.GetEndPoint(1);
+            XYZ Point0 = grid.Curve.GetEndPoint(0);
+            XYZ Point1 = grid.Curve.GetEndPoint(1); 
+            if (Math.Abs(Point0.Y - Point1.Y) < 1e-6)
+            {
+                
+                StartPoint = Point0.X > Point1.X ? Point1 : Point0;
+                EndPoint = Point0.X < Point1.X ? Point1 : Point0;
+            }
+            else if (Math.Abs(Point0.X - Point1.X) < 1e-6)
+            {
+                
+                StartPoint = Point0.Y > Point1.Y ? Point1 : Point0;
+                EndPoint = Point0.Y < Point1.Y ? Point1 : Point0;
+            }
+            else if (Point0.X < Point1.X)
+            {
+                
+                StartPoint = Point0;
+                EndPoint = Point1;
+            }
+            else
+            {
+                
+                StartPoint = Point1;
+                EndPoint = Point0;
+            }
         }
     }
 
