@@ -66,10 +66,10 @@ namespace 添加轴线
                             OffsetArcGrid offsetGrid = new OffsetArcGrid(selectedPoint, grid);
                             Model newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
 
-                            //newinfo = GetNameAndDistance(grid, offsetGrid.OffsetDistance);
+                            
                             if (newinfo != null)
                             {
-                                offsetGrid.ArcRadius += newinfo.Distance;
+                                offsetGrid.OffsetDistance = newinfo.Distance;
 
                                 Arc arc = Arc.Create(offsetGrid.ArcCenter, offsetGrid.ArcRadius, offsetGrid.StartAngle, offsetGrid.EndAngle, XYZ.BasisX, XYZ.BasisY);
                                 newGridId = Grid.Create(doc, arc).Id;
@@ -105,7 +105,7 @@ namespace 添加轴线
         private Model GetNameAndDistance(Grid grid, double distance)
         {
             Model model = new Model();
-            model.Name = grid.Name+"/1";
+            model.Name = grid.Name + "/1";
             model.Distance = UnitUtils.ConvertFromInternalUnits(distance, DisplayUnitType.DUT_MILLIMETERS);
 
             MainView mainView = new MainView();
@@ -123,43 +123,6 @@ namespace 添加轴线
                 }
             }
             return null;
-        }
-
-        private void GetDirectionofGrid()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 如果选中的轴线是直线
-        /// </summary>
-        /// <param name="gird">被选中的轴线</param>
-        /// <exception cref="NotImplementedException"></exception>
-        private void GetGridisLine(Grid gird)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// 如果选中的轴线是弧线
-        /// </summary>
-        /// <param name="gird">被选中的轴线</param>
-        /// <exception cref="NotImplementedException"></exception>
-        private void GetGridisArc(Grid gird)
-        {
-            throw new NotImplementedException();
-        }
-
-      
-
-        public double GetCosineOfVectors(XYZ vector1, XYZ vector2)
-        { // 计算点积
-            double dotProduct = vector1.DotProduct(vector2);
-            // 计算两个向量的长度
-            double length1 = vector1.GetLength();
-            double length2 = vector2.GetLength();
-            // 计算余弦值
-            return dotProduct / (length1 * length2);
         }
 
         /// <summary>
