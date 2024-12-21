@@ -57,7 +57,7 @@ namespace 添加轴线
                             {
                                 offsetGrid.OffsetDistance = newinfo.Distance;
 
-                                newGridId = ElementTransformUtils.CopyElement(doc, grid.Id, offsetGrid.OffsetDir).First();
+                                newGridId = ElementTransformUtils.CopyElement(doc, grid.Id, offsetGrid.SetOffsetDistance()).First();
                                 SetNewName(newGridId, newinfo.Name);
                             }
                         }
@@ -71,7 +71,7 @@ namespace 添加轴线
                             {
                                 offsetGrid.OffsetDistance = newinfo.Distance;
 
-                                Arc arc = Arc.Create(offsetGrid.ArcCenter, offsetGrid.ArcRadius, offsetGrid.StartAngle, offsetGrid.EndAngle, XYZ.BasisX, XYZ.BasisY);
+                                Arc arc = Arc.Create(offsetGrid.ArcCenter, offsetGrid.GetRadius(), offsetGrid.StartAngle, offsetGrid.EndAngle, XYZ.BasisX, XYZ.BasisY);
                                 newGridId = Grid.Create(doc, arc).Id;
 
                                 SetNewName(newGridId, newinfo.Name);

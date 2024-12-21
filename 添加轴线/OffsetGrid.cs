@@ -66,7 +66,7 @@ namespace 添加轴线
         /// </summary>
         public abstract void GetStartAndEndPoint();
 
-        public abstract void SetOffsetDistance();
+        public abstract XYZ SetOffsetDistance();
 
         /// <summary>
         /// 点到直线的距离
@@ -101,11 +101,12 @@ namespace 添加轴线
             //计算夹角的余弦值
             double cosTheta = dotProduct / (magnitude1 * magnitude2);
             //确保余弦值在有效范围内
-            // cosTheta = Math.Max(-1.0, Math.Min(1.0, cosTheta));
+            cosTheta = Math.Max(-1.0, Math.Min(1.0, cosTheta));
             //计算夹角的弧度
             double thetaInRadians = Math.Acos(cosTheta);
             return thetaInRadians;
         }
+
         /// <summary>
         /// 点到曲线的距离
         /// </summary>
@@ -136,7 +137,7 @@ namespace 添加轴线
         {
             GetStartAndEndPoint();
             GetDistance();
-            SetOffsetDistance();
+            
         }
 
         /// <summary>
@@ -175,7 +176,7 @@ namespace 添加轴线
             }
         }
 
-        public override void SetOffsetDistance()
+        public override XYZ SetOffsetDistance()
         {
             XYZ verctor1 = SelectedPoint - StartPoint;
             XYZ verctor2 = EndPoint - StartPoint;
@@ -185,6 +186,7 @@ namespace 添加轴线
             {//根据选取点的位置选择偏移方向
                 OffsetDir = -OffsetDir;
             }
+            return OffsetDir;
         }
     }
 
@@ -195,20 +197,18 @@ namespace 添加轴线
         public OffsetArcGrid(XYZ selectedPoint, Grid grid) : base(selectedPoint, grid)
         {
             GridArc = grid.Curve as Arc;
-           
+            ArcRadius=GridArc.Radius;
             ArcCenter = GridArc.Center;
             GetStartAndEndPoint();
             GetDistance();
-            SetOffsetDistance();
+            
             SetStartAndEndAngle();
         }
-
-       
 
         /// <summary>
         /// 弧线轴网的起始角度
         /// </summary>
-        public double StartAngle  { get; set; }
+        public double StartAngle { get; set; }
 
         /// <summary>
         /// 弧线轴网的结束角度
@@ -243,7 +243,6 @@ namespace 添加轴线
             {
                 StartPoint = Point0;
                 EndPoint = Point1;
-               
             }
             else
             {
@@ -252,24 +251,50 @@ namespace 添加轴线
             }
         }
 
-        public override void SetOffsetDistance()
+        public override XYZ SetOffsetDistance()
         {
             XYZ verctor1 = SelectedPoint - ArcCenter;
             double radius = GridArc.Radius;
-            //if (verctor1.CrossProduct(verctor2).Z < 0) { }
-            if (verctor1.GetLength()<radius)
+
+            if (verctor1.GetLength() < radius)
             {
                 OffsetDistance = -OffsetDistance;
             }
 
-            ArcRadius = GridArc.Radius+ OffsetDistance;
+            ArcRadius = GridArc.Radius + OffsetDistance;
+            return verctor1;
         }
+
+        public double GetRadius()
+        {
+            SetOffsetDistance();
+            return ArcRadius;
+        }
+
         /// <summary>
         /// 设置圆弧的起始角度和结束角度
         /// </summary>
         private void SetStartAndEndAngle()
         {
+            double StartToEndAngle = GetAngleBetweenVectors(StartPoint - ArcCenter, EndPoint - ArcCenter);
+            Transform t = GridArc.ComputeDerivatives(0.5, true);
 
+            double dis = GetDistanceFromPointToCurve(t.Origin, Line.CreateBound(StartPoint, EndPoint));
+            if (dis > ArcRadius)
+            {
+                StartToEndAngle = 2 * Math.PI - StartToEndAngle;
+            }
+            var vector = StartPoint - ArcCenter;
+            if (vector.Y > 0)
+            {
+                StartAngle = GetAngleBetweenVectors(vector, XYZ.BasisX);
+            }
+            else
+            {
+                StartAngle = -GetAngleBetweenVectors(vector, XYZ.BasisX);
+            }
+
+            EndAngle = StartAngle + StartToEndAngle;
         }
     }
 }
